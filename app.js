@@ -1,1 +1,176 @@
+import { auth, db } from "./firebase-config.js";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  collection,
+  addDoc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+const register = async () => {
+  const email = document.getElementById("reg-email").value;
+  const password = document.getElementById("reg-password").value;
+
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("Registered Successfully");
+    await setDoc(doc(db, "students", email), { batches: [] });
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+const login = async () => {
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("Logged in successfully");
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+const logout = async () => {
+  await signOut(auth);
+  location.reload();
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    document.getElementById("auth-section").classList.add("hidden");
+
+    if (user.email === "admin@abp.com") {
+      document.getElementById("admin-panel").classList.remove("hidden");
+    } else {
+      document.getElementById("student-panel").classList.remove("hidden");
+
+      const studentRef = doc(db, "students", user.email);
+      const studentSnap = await getDoc(studentRef);
+
+      if (studentSnap.exists()) {
+        const studentData = studentSnap.data();
+        console.log("Student batches IDs:", studentData.batches);
+        const container = document.getElementById("student-batches");
+        container.innerHTML = "";
+
+        for (let batchId of studentData.batches) {
+          console.log("Fetching batch ID:", batchId);
+          const batchSnap = await getDoc(doc(db, "batches", batchId));
+          if (batchSnap.exists()) {
+            const batchData = batchSnap.data();
+            console.log("Fetched batch:", batchData);
+            const div = document.createElement("div");
+            div.innerHTML = `<h3>${batchData.name}</h3>`;
+
+            for (let subject in batchData.subjects) {
+              div.innerHTML += `<h4>${subject}</h4>`;
+              batchData.subjects[subject].forEach(item => {
+                div.innerHTML += `<p><a href="${item.url}" target="_blank">${item.title} (${item.type})</a></p>`;
+              });
+            }
+
+            container.appendChild(div);
+          }
+        }
+      }
+    }
+  }
+});
+
+window.register = register;
+window.login = login;
+window.logout = logout;
+
+window.createBatch = async () => {
+  const name = document.getElementById("batch-name").value;
+  try {
+    const docRef = await addDoc(collection(db, "batches"), {
+      name,
+      subjects: {}
+    });
+    alert("Batch Created: " + docRef.id);
+  } catch (e) {
+    alert("Error adding batch: " + e);
+  }
+};
+
+window.addSubjectContent = async () => {
+  const batchName = document.getElementById("batch-id-subject").value.trim();
+  const subject = document.getElementById("subject-name").value.trim();
+  const title = document.getElementById("content-title").value.trim();
+  const url = document.getElementById("content-url").value.trim();
+  const type = document.getElementById("content-type").value;
+
+  try {
+    const querySnapshot = await getDocs(collection(db, "batches"));
+    let batchDoc = null;
+    let batchId = null;
+
+    querySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.name === batchName) {
+        batchDoc = data;
+        batchId = docSnap.id;
+      }
+    });
+
+    if (!batchId) {
+      alert("Batch name not found!");
+      return;
+    }
+
+    const batchRef = doc(db, "batches", batchId);
+
+    if (!batchDoc.subjects[subject]) {
+      batchDoc.subjects[subject] = [];
+    }
+
+    batchDoc.subjects[subject].push({ title, url, type });
+
+    await setDoc(batchRef, batchDoc);
+    alert("Content added to subject");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
+
+window.assignBatch = async () => {
+  const email = document.getElementById("student-email").value.trim();
+  const batchName = document.getElementById("assign-batch-id").value.trim();
+
+  try {
+    const querySnapshot = await getDocs(collection(db, "batches"));
+    let batchId = null;
+
+    querySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.name === batchName) {
+        batchId = docSnap.id;
+      }
+    });
+
+    if (!batchId) {
+      alert("Batch name not found!");
+      return;
+    }
+
+    const studentRef = doc(db, "students", email);
+    await updateDoc(studentRef, {
+      batches: arrayUnion(batchId)
+    });
+    alert("Batch assigned to student");
+  } catch (error) {
+    alert("Error assigning batch: " + error.message);
+  }
+};
