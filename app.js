@@ -60,34 +60,55 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById("admin-panel").classList.remove("hidden");
     } else {
       document.getElementById("student-panel").classList.remove("hidden");
+const studentRef = doc(db, "students", user.email);
+const studentSnap = await getDoc(studentRef);
 
-      const studentRef = doc(db, "students", user.email);
-      const studentSnap = await getDoc(studentRef);
+if (studentSnap.exists()) {
+  const studentData = studentSnap.data();
+  const container = document.getElementById("student-batches");
+  container.innerHTML = "";
 
-      if (studentSnap.exists()) {
-        const studentData = studentSnap.data();
-        const container = document.getElementById("student-batches");
-        container.innerHTML = "";
+  console.log("Student batches:", studentData.batches);
 
-        console.log("Student Data:", studentData);
+  if (studentData.batches.length === 0) {
+    container.innerHTML = "<p>No batch assigned yet.</p>";
+    return;
+  }
 
-        for (let batchId of studentData.batches) {
-          const batchSnap = await getDoc(doc(db, "batches", batchId));
-          if (batchSnap.exists()) {
-            const batchData = batchSnap.data();
-            const div = document.createElement("div");
-            div.innerHTML = `<h3>${batchData.name}</h3>`;
+  for (let batchId of studentData.batches) {
+    try {
+      const batchDocRef = doc(db, "batches", batchId);
+      const batchSnap = await getDoc(batchDocRef);
 
-            for (let subject in batchData.subjects) {
-              div.innerHTML += `<h4>${subject}</h4>`;
-              batchData.subjects[subject].forEach(item => {
-                div.innerHTML += `<p><a href="${item.url}" target="_blank">${item.title} (${item.type})</a></p>`;
-              });
-            }
+      if (batchSnap.exists()) {
+        const batchData = batchSnap.data();
+        console.log("Loaded batch:", batchData);
 
-            container.appendChild(div);
+        const div = document.createElement("div");
+        div.innerHTML = `<h3>${batchData.name}</h3>`;
+
+        if (batchData.subjects) {
+          for (let subject in batchData.subjects) {
+            div.innerHTML += `<h4>${subject}</h4>`;
+            batchData.subjects[subject].forEach(item => {
+              div.innerHTML += `<p><a href="${item.url}" target="_blank">${item.title} (${item.type})</a></p>`;
+            });
           }
+        } else {
+          div.innerHTML += "<p>No subjects added yet.</p>";
         }
+
+        container.appendChild(div);
+      } else {
+        console.warn("Batch ID not found:", batchId);
+      }
+    } catch (e) {
+      console.error("Error loading batch:", e.message);
+    }
+  }
+} else {
+  console.error("Student document not found.");
+  }
       }
     }
   }
