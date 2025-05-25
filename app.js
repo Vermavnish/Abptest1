@@ -1,5 +1,3 @@
-// app.js
-
 import { auth, db } from "./firebase-config.js";
 import {
   createUserWithEmailAndPassword,
@@ -19,6 +17,7 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// Student Registration
 const register = async () => {
   const email = document.getElementById("reg-email").value;
   const password = document.getElementById("reg-password").value;
@@ -32,6 +31,7 @@ const register = async () => {
   }
 };
 
+// Student Login
 const login = async () => {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
@@ -44,11 +44,13 @@ const login = async () => {
   }
 };
 
+// Logout
 const logout = async () => {
   await signOut(auth);
   location.reload();
 };
 
+// On Auth Change
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById("auth-section").classList.add("hidden");
@@ -89,11 +91,11 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // Admin Functions
-
 window.register = register;
 window.login = login;
 window.logout = logout;
 
+// Create a new batch
 window.createBatch = async () => {
   const name = document.getElementById("batch-name").value;
   try {
@@ -107,26 +109,48 @@ window.createBatch = async () => {
   }
 };
 
+// Add subject content using batch **name**
 window.addSubjectContent = async () => {
-  const batchId = document.getElementById("batch-id-subject").value;
-  const subject = document.getElementById("subject-name").value;
-  const title = document.getElementById("content-title").value;
-  const url = document.getElementById("content-url").value;
+  const batchName = document.getElementById("batch-id-subject").value.trim();
+  const subject = document.getElementById("subject-name").value.trim();
+  const title = document.getElementById("content-title").value.trim();
+  const url = document.getElementById("content-url").value.trim();
   const type = document.getElementById("content-type").value;
 
-  const batchRef = doc(db, "batches", batchId);
-  const batchSnap = await getDoc(batchRef);
-  if (batchSnap.exists()) {
-    const data = batchSnap.data();
-    if (!data.subjects[subject]) {
-      data.subjects[subject] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "batches"));
+    let batchDoc = null;
+    let batchId = null;
+
+    querySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.name === batchName) {
+        batchDoc = data;
+        batchId = docSnap.id;
+      }
+    });
+
+    if (!batchId) {
+      alert("Batch name not found!");
+      return;
     }
-    data.subjects[subject].push({ title, url, type });
-    await setDoc(batchRef, data);
+
+    const batchRef = doc(db, "batches", batchId);
+
+    if (!batchDoc.subjects[subject]) {
+      batchDoc.subjects[subject] = [];
+    }
+
+    batchDoc.subjects[subject].push({ title, url, type });
+
+    await setDoc(batchRef, batchDoc);
     alert("Content added to subject");
+  } catch (error) {
+    alert("Error: " + error.message);
   }
 };
 
+// Assign batch to student
 window.assignBatch = async () => {
   const email = document.getElementById("student-email").value;
   const batchId = document.getElementById("assign-batch-id").value;
@@ -137,4 +161,3 @@ window.assignBatch = async () => {
   });
   alert("Batch assigned to student");
 };
-// Paste your full app.js code here
