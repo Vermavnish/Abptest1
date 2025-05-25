@@ -68,12 +68,15 @@ onAuthStateChanged(auth, async (user) => {
         const container = document.getElementById("student-batches");
         container.innerHTML = "";
 
+        console.log("Student batches IDs:", studentData.batches);
+
         for (let batchId of studentData.batches) {
           const batchSnap = await getDoc(doc(db, "batches", batchId));
           if (batchSnap.exists()) {
             const batchData = batchSnap.data();
             const div = document.createElement("div");
             div.innerHTML = `<h3>${batchData.name}</h3>`;
+            console.log("Fetched batch:", batchData);
 
             for (let subject in batchData.subjects) {
               div.innerHTML += `<h4>${subject}</h4>`;
