@@ -1,145 +1,198 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { auth, db } from "./firebase-config.js";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC0dQtToOsQD6Luv0YOmeethDO5kyimSKA",
-  authDomain: "abpclass-7c802.firebaseapp.com",
-  projectId: "abpclass-7c802",
-  storageBucket: "abpclass-7c802.appspot.com",
-  messagingSenderId: "841554153669",
-  appId: "1:841554153669:web:6c9d4d84bf521c531b60ac",
-  measurementId: "G-Y8HBFK4EV3"
-};
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  collection,
+  addDoc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-window.register = async function() {
+// Register
+const register = async () => {
   const email = document.getElementById("reg-email").value;
   const password = document.getElementById("reg-password").value;
-  await createUserWithEmailAndPassword(auth, email, password);
-  alert("Registered successfully!");
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    await setDoc(doc(db, "students", email), { batches: [] });
+    alert("Registered Successfully");
+  } catch (error) {
+    alert(error.message);
+  }
 };
 
-window.login = async function() {
+// Login
+const login = async () => {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
-  await signInWithEmailAndPassword(auth, email, password);
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("Logged in successfully");
+  } catch (error) {
+    alert(error.message);
+  }
 };
 
-window.logout = async function() {
+// Logout
+const logout = async () => {
   await signOut(auth);
   location.reload();
 };
 
-onAuthStateChanged(auth, user => {
+// On Auth Change
+onAuthStateChanged(auth, async (user) => {
   if (user) {
+    document.getElementById("auth-section").classList.add("hidden");
+
     if (user.email === "admin@abp.com") {
-      document.getElementById("auth-section").classList.add("hidden");
       document.getElementById("admin-panel").classList.remove("hidden");
     } else {
-      loadStudentDashboard(user.email);
+      document.getElementById("student-panel").classList.remove("hidden");
+
+      const studentRef = doc(db, "students", user.email);
+      const studentSnap = await getDoc(studentRef);
+
+      if (studentSnap.exists()) {
+        const studentData = studentSnap.data();
+        const container = document.getElementById("student-batches");
+        container.innerHTML = "";
+
+        for (let batchId of studentData.batches) {
+          const batchSnap = await getDoc(doc(db, "batches", batchId));
+          if (batchSnap.exists()) {
+            const batchData = batchSnap.data();
+            const div = document.createElement("div");
+            div.style.border = "1px solid #ccc";
+            div.style.padding = "10px";
+            div.style.marginBottom = "15px";
+            div.innerHTML = `<h3>${batchData.name}</h3>`;
+
+            for (let subject in batchData.subjects) {
+              div.innerHTML += `<h4>${subject}</h4>`;
+              batchData.subjects[subject].forEach(item => {
+                if (item.type === "video") {
+                  const match = item.url.match(/(?:v=|\.be\/)([\w-]+)/);
+                  if (match) {
+                    const videoId = match[1];
+                    div.innerHTML += `
+                      <div style="margin-bottom: 10px;">
+                        <p><strong>${item.title}</strong></p>
+                        <div class="video-wrapper">
+        <iframe class="yt-frame"
+                          src="https://www.youtube.com/embed/${videoId}"
+                          frameborder="0"?modestbranding=1&rel=0&controls=1
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowfullscreen></iframe><div class="yt-overlay"></div></div>
+                        </iframe>
+                      </div>`;
+                  }
+                } else {
+                  div.innerHTML += `<p><a href="${item.url}" target="_blank">${item.title} (${item.type})</a></p>`;
+                }
+              });
+            }
+
+            container.appendChild(div);
+          }
+        }
+      }
     }
   }
 });
 
-function loadStudentDashboard(email) {
-  document.getElementById("auth-section").classList.add("hidden");
-  document.getElementById("student-panel").classList.remove("hidden");
+// Admin Functions
+window.register = register;
+window.login = login;
+window.logout = logout;
 
-  const studentBatchesContainer = document.getElementById("student-batches");
-  studentBatchesContainer.innerHTML = "<h3>Your Batches:</h3>";
-
-  getDoc(doc(db, "students", email)).then(studentDoc => {
-    const assignedBatches = studentDoc.data()?.batches || [];
-    assignedBatches.forEach(batchName => {
-      const batchDiv = document.createElement("div");
-      batchDiv.textContent = batchName;
-      batchDiv.style.cursor = "pointer";
-      batchDiv.style.fontWeight = "bold";
-
-      batchDiv.addEventListener("click", () => {
-        showSubjects(batchName, batchDiv);
-      });
-
-      studentBatchesContainer.appendChild(batchDiv);
+window.createBatch = async () => {
+  const name = document.getElementById("batch-name").value;
+  try {
+    const docRef = await addDoc(collection(db, "batches"), {
+      name,
+      subjects: {}
     });
-  });
-}
-
-function showSubjects(batchName, parentDiv) {
-  const subjectsContainer = document.createElement("div");
-  subjectsContainer.innerHTML = "<em>Loading subjects...</em>";
-  parentDiv.appendChild(subjectsContainer);
-
-  const subjectsRef = collection(db, "batches", batchName, "subjects");
-  getDocs(subjectsRef).then(snapshot => {
-    subjectsContainer.innerHTML = "";
-    snapshot.forEach(docSnap => {
-      const subjectName = docSnap.id;
-      const subjectDiv = document.createElement("div");
-      subjectDiv.textContent = subjectName;
-      subjectDiv.style.marginLeft = "15px";
-      subjectDiv.style.cursor = "pointer";
-
-      subjectDiv.addEventListener("click", () => {
-        showContent(batchName, subjectName, subjectDiv);
-      });
-
-      subjectsContainer.appendChild(subjectDiv);
-    });
-  });
-}
-
-function showContent(batchName, subjectName, parentDiv) {
-  const contentDiv = document.createElement("div");
-  contentDiv.innerHTML = "<em>Loading content...</em>";
-  parentDiv.appendChild(contentDiv);
-
-  const subjectDocRef = doc(db, "batches", batchName, "subjects", subjectName);
-  getDoc(subjectDocRef).then(docSnap => {
-    contentDiv.innerHTML = "";
-    const contents = docSnap.data()?.contents || [];
-    contents.forEach(item => {
-      const itemEl = document.createElement("div");
-      itemEl.innerHTML = `<strong>${item.title}</strong> - <a href="\${item.url}" target="_blank">\${item.type}</a>`;
-      itemEl.style.marginLeft = "30px";
-      contentDiv.appendChild(itemEl);
-    });
-  });
-}
-
-window.createBatch = async function() {
-  const batchName = document.getElementById("batch-name").value;
-  await setDoc(doc(db, "batches", batchName), {});
-  alert("Batch created!");
+    alert("Batch Created: " + docRef.id);
+  } catch (e) {
+    alert("Error adding batch: " + e);
+  }
 };
 
-window.addSubjectContent = async function() {
-  const batchName = document.getElementById("batch-id-subject").value;
-  const subjectName = document.getElementById("subject-name").value;
-  const title = document.getElementById("content-title").value;
-  const url = document.getElementById("content-url").value;
+window.addSubjectContent = async () => {
+  const batchName = document.getElementById("batch-id-subject").value.trim();
+  const subject = document.getElementById("subject-name").value.trim();
+  const title = document.getElementById("content-title").value.trim();
+  const url = document.getElementById("content-url").value.trim();
   const type = document.getElementById("content-type").value;
 
-  const subjectRef = doc(db, "batches", batchName, "subjects", subjectName);
-  const existing = await getDoc(subjectRef);
-  const contents = existing.exists() ? existing.data().contents || [] : [];
-  contents.push({ title, url, type });
-  await setDoc(subjectRef, { contents });
-  alert("Content added!");
+  try {
+    const querySnapshot = await getDocs(collection(db, "batches"));
+    let batchDoc = null;
+    let batchId = null;
+
+    querySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.name === batchName) {
+        batchDoc = data;
+        batchId = docSnap.id;
+      }
+    });
+
+    if (!batchId) {
+      alert("Batch name not found!");
+      return;
+    }
+
+    const batchRef = doc(db, "batches", batchId);
+
+    if (!batchDoc.subjects[subject]) {
+      batchDoc.subjects[subject] = [];
+    }
+
+    batchDoc.subjects[subject].push({ title, url, type });
+
+    await setDoc(batchRef, batchDoc);
+    alert("Content added to subject");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
 };
 
-window.assignBatch = async function() {
-  const email = document.getElementById("student-email").value;
-  const batchName = document.getElementById("assign-batch-id").value;
+window.assignBatch = async () => {
+  const email = document.getElementById("student-email").value.trim();
+  const batchName = document.getElementById("assign-batch-id").value.trim();
 
-  const studentRef = doc(db, "students", email);
-  const studentDoc = await getDoc(studentRef);
-  const currentBatches = studentDoc.exists() ? studentDoc.data().batches || [] : [];
-  if (!currentBatches.includes(batchName)) currentBatches.push(batchName);
-  await setDoc(studentRef, { batches: currentBatches });
-  alert("Batch assigned!");
+  try {
+    const querySnapshot = await getDocs(collection(db, "batches"));
+    let batchId = null;
+
+    querySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.name === batchName) {
+        batchId = docSnap.id;
+      }
+    });
+
+    if (!batchId) {
+      alert("Batch name not found!");
+      return;
+    }
+
+    const studentRef = doc(db, "students", email);
+    await updateDoc(studentRef, {
+      batches: arrayUnion(batchId)
+    });
+    alert("Batch assigned to student");
+  } catch (error) {
+    alert("Error assigning batch: " + error.message);
+  }
 };

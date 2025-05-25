@@ -9,48 +9,15 @@
 </head>
 <body>
   <h1>ABP Classes</h1>
-
   <div id="auth-section">
-    <h2>Register</h2>
-    <input id="reg-email" placeholder="Email" />
-    <input id="reg-password" placeholder="Password" type="password" />
-    <button onclick="register()">Register</button>
-
     <h2>Login</h2>
     <input id="login-email" placeholder="Email" />
     <input id="login-password" placeholder="Password" type="password" />
     <button onclick="login()">Login</button>
   </div>
-
   <div id="student-panel" class="hidden">
     <h2>Student Dashboard</h2>
     <div id="student-batches"></div>
-    <button onclick="logout()">Logout</button>
-  </div>
-
-  <div id="admin-panel" class="hidden">
-    <h2>Admin Dashboard</h2>
-
-    <h3>Create Batch</h3>
-    <input id="batch-name" placeholder="Batch Name" />
-    <button onclick="createBatch()">Create</button>
-
-    <h3>Add Subject Content</h3>
-    <input id="batch-id-subject" placeholder="Batch Name" />
-    <input id="subject-name" placeholder="Subject" />
-    <input id="content-title" placeholder="Content Title" />
-    <input id="content-url" placeholder="Content URL" />
-    <select id="content-type">
-      <option value="video">Video</option>
-      <option value="pdf">PDF</option>
-    </select>
-    <button onclick="addSubjectContent()">Add</button>
-
-    <h3>Assign Batch to Student</h3>
-    <input id="student-email" placeholder="Student Email" />
-    <input id="assign-batch-id" placeholder="Batch Name" />
-    <button onclick="assignBatch()">Assign</button>
-
     <button onclick="logout()">Logout</button>
   </div>
 </body>
