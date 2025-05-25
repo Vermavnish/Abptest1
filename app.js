@@ -86,7 +86,7 @@ onAuthStateChanged(auth, async (user) => {
                     div.innerHTML += `
                       <div style="margin-bottom: 10px;">
                         <p><strong>${item.title}</strong></p>
-                        <iframe width="100%" height="250" style="max-width: 600px;"
+                        <iframe style="width:100%; aspect-ratio: 16/9; border:0;"
                           src="https://www.youtube.com/embed/${videoId}"
                           frameborder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
