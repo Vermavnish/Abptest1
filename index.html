@@ -1,24 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ABP Classes</title>
-  <link rel="stylesheet" href="style.css" />
-  <script type="module" src="app.js" defer></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ABP Classes</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>ABP Classes</h1>
-  <div id="auth-section">
-    <h2>Login</h2>
-    <input id="login-email" placeholder="Email" />
-    <input id="login-password" placeholder="Password" type="password" />
-    <button onclick="login()">Login</button>
-  </div>
-  <div id="student-panel" class="hidden">
-    <h2>Student Dashboard</h2>
-    <div id="student-batches"></div>
-    <button onclick="logout()">Logout</button>
-  </div>
+    <div class="container">
+        <h1>ABP Classes</h1>
+
+        <div id="auth-section">
+            <h2>Register</h2>
+            <input type="email" id="reg-email" placeholder="Email" />
+            <input type="password" id="reg-password" placeholder="Password" />
+            <button onclick="register()">Register</button>
+
+            <h2>Login</h2>
+            <input type="email" id="login-email" placeholder="Email" />
+            <input type="password" id="login-password" placeholder="Password" />
+            <button onclick="login()">Login</button>
+        </div>
+
+        <div id="admin-panel" class="hidden">
+            <h2>Admin Panel</h2>
+            <h3>Create Batch</h3>
+            <input type="text" id="batch-name" placeholder="Batch Name" />
+            <button onclick="createBatch()">Create</button>
+
+            <h3>Add Subject to Batch</h3>
+            <input type="text" id="batch-id-subject" placeholder="Batch ID" />
+            <input type="text" id="subject-name" placeholder="Subject" />
+            <input type="text" id="content-title" placeholder="Title" />
+            <input type="text" id="content-url" placeholder="URL" />
+            <select id="content-type">
+                <option value="video">Video</option>
+                <option value="pdf">PDF</option>
+            </select>
+            <button onclick="addSubjectContent()">Add Content</button>
+
+            <h3>Assign Batch to Student</h3>
+            <input type="email" id="student-email" placeholder="Student Email" />
+            <input type="text" id="assign-batch-id" placeholder="Batch ID" />
+            <button onclick="assignBatch()">Assign</button>
+        </div>
+
+        <div id="student-panel" class="hidden">
+            <h2>Student Dashboard</h2>
+            <div id="student-batches"></div>
+        </div>
+
+        <button onclick="logout()">Logout</button>
+    </div>
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
