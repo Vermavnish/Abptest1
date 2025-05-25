@@ -5,6 +5,7 @@ import {
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
 import {
   doc,
   setDoc,
@@ -16,23 +17,23 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// Register
 const register = async () => {
   const email = document.getElementById("reg-email").value;
   const password = document.getElementById("reg-password").value;
-
   try {
     await createUserWithEmailAndPassword(auth, email, password);
-    alert("Registered Successfully");
     await setDoc(doc(db, "students", email), { batches: [] });
+    alert("Registered Successfully");
   } catch (error) {
     alert(error.message);
   }
 };
 
+// Login
 const login = async () => {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
-
   try {
     await signInWithEmailAndPassword(auth, email, password);
     alert("Logged in successfully");
@@ -41,11 +42,13 @@ const login = async () => {
   }
 };
 
+// Logout
 const logout = async () => {
   await signOut(auth);
   location.reload();
 };
 
+// On Auth Change
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById("auth-section").classList.add("hidden");
@@ -60,23 +63,37 @@ onAuthStateChanged(auth, async (user) => {
 
       if (studentSnap.exists()) {
         const studentData = studentSnap.data();
-        console.log("Student batches IDs:", studentData.batches);
         const container = document.getElementById("student-batches");
         container.innerHTML = "";
 
         for (let batchId of studentData.batches) {
-          console.log("Fetching batch ID:", batchId);
           const batchSnap = await getDoc(doc(db, "batches", batchId));
           if (batchSnap.exists()) {
             const batchData = batchSnap.data();
-            console.log("Fetched batch:", batchData);
             const div = document.createElement("div");
             div.innerHTML = `<h3>${batchData.name}</h3>`;
 
             for (let subject in batchData.subjects) {
               div.innerHTML += `<h4>${subject}</h4>`;
               batchData.subjects[subject].forEach(item => {
-                div.innerHTML += `<p><a href="${item.url}" target="_blank">${item.title} (${item.type})</a></p>`;
+                if (item.type === "video") {
+                  const match = item.url.match(/(?:v=|\.be\/)([\w-]+)/);
+                  if (match) {
+                    const videoId = match[1];
+                    div.innerHTML += `
+                      <div style="margin-bottom: 10px;">
+                        <p><strong>${item.title}</strong></p>
+                        <iframe width="300" height="170"
+                          src="https://www.youtube.com/embed/${videoId}"
+                          frameborder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowfullscreen>
+                        </iframe>
+                      </div>`;
+                  }
+                } else {
+                  div.innerHTML += `<p><a href="${item.url}" target="_blank">${item.title} (${item.type})</a></p>`;
+                }
               });
             }
 
@@ -88,6 +105,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
+// Admin Functions
 window.register = register;
 window.login = login;
 window.logout = logout;
