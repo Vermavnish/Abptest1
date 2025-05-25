@@ -5,7 +5,6 @@ import {
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
 import {
   doc,
   setDoc,
@@ -17,7 +16,6 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Student Registration
 const register = async () => {
   const email = document.getElementById("reg-email").value;
   const password = document.getElementById("reg-password").value;
@@ -31,7 +29,6 @@ const register = async () => {
   }
 };
 
-// Student Login
 const login = async () => {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
@@ -44,13 +41,11 @@ const login = async () => {
   }
 };
 
-// Logout
 const logout = async () => {
   await signOut(auth);
   location.reload();
 };
 
-// On Auth State Change
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById("auth-section").classList.add("hidden");
@@ -65,18 +60,18 @@ onAuthStateChanged(auth, async (user) => {
 
       if (studentSnap.exists()) {
         const studentData = studentSnap.data();
+        console.log("Student batches IDs:", studentData.batches);
         const container = document.getElementById("student-batches");
         container.innerHTML = "";
 
-        console.log("Student batches IDs:", studentData.batches);
-
         for (let batchId of studentData.batches) {
+          console.log("Fetching batch ID:", batchId);
           const batchSnap = await getDoc(doc(db, "batches", batchId));
           if (batchSnap.exists()) {
             const batchData = batchSnap.data();
+            console.log("Fetched batch:", batchData);
             const div = document.createElement("div");
             div.innerHTML = `<h3>${batchData.name}</h3>`;
-            console.log("Fetched batch:", batchData);
 
             for (let subject in batchData.subjects) {
               div.innerHTML += `<h4>${subject}</h4>`;
@@ -93,12 +88,10 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Admin Functions
 window.register = register;
 window.login = login;
 window.logout = logout;
 
-// Create Batch (with name)
 window.createBatch = async () => {
   const name = document.getElementById("batch-name").value;
   try {
@@ -112,7 +105,6 @@ window.createBatch = async () => {
   }
 };
 
-// Add Subject Content using Batch Name
 window.addSubjectContent = async () => {
   const batchName = document.getElementById("batch-id-subject").value.trim();
   const subject = document.getElementById("subject-name").value.trim();
@@ -153,7 +145,6 @@ window.addSubjectContent = async () => {
   }
 };
 
-// Assign Batch using Batch Name
 window.assignBatch = async () => {
   const email = document.getElementById("student-email").value.trim();
   const batchName = document.getElementById("assign-batch-id").value.trim();
