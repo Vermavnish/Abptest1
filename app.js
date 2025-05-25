@@ -23,7 +23,7 @@ const register = async () => {
   const password = document.getElementById("reg-password").value;
 
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await createUserWithEmailAndPassword(auth, email, password);
     alert("Registered Successfully");
     await setDoc(doc(db, "students", email), { batches: [] });
   } catch (error) {
@@ -50,7 +50,7 @@ const logout = async () => {
   location.reload();
 };
 
-// On Auth Change
+// On Auth State Change
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById("auth-section").classList.add("hidden");
@@ -95,7 +95,7 @@ window.register = register;
 window.login = login;
 window.logout = logout;
 
-// Create a new batch
+// Create Batch (with name)
 window.createBatch = async () => {
   const name = document.getElementById("batch-name").value;
   try {
@@ -109,7 +109,7 @@ window.createBatch = async () => {
   }
 };
 
-// Add subject content using batch **name**
+// Add Subject Content using Batch Name
 window.addSubjectContent = async () => {
   const batchName = document.getElementById("batch-id-subject").value.trim();
   const subject = document.getElementById("subject-name").value.trim();
@@ -150,14 +150,33 @@ window.addSubjectContent = async () => {
   }
 };
 
-// Assign batch to student
+// Assign Batch using Batch Name
 window.assignBatch = async () => {
-  const email = document.getElementById("student-email").value;
-  const batchId = document.getElementById("assign-batch-id").value;
+  const email = document.getElementById("student-email").value.trim();
+  const batchName = document.getElementById("assign-batch-id").value.trim();
 
-  const studentRef = doc(db, "students", email);
-  await updateDoc(studentRef, {
-    batches: arrayUnion(batchId)
-  });
-  alert("Batch assigned to student");
+  try {
+    const querySnapshot = await getDocs(collection(db, "batches"));
+    let batchId = null;
+
+    querySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.name === batchName) {
+        batchId = docSnap.id;
+      }
+    });
+
+    if (!batchId) {
+      alert("Batch name not found!");
+      return;
+    }
+
+    const studentRef = doc(db, "students", email);
+    await updateDoc(studentRef, {
+      batches: arrayUnion(batchId)
+    });
+    alert("Batch assigned to student");
+  } catch (error) {
+    alert("Error assigning batch: " + error.message);
+  }
 };
