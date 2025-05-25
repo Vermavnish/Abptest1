@@ -86,12 +86,11 @@ onAuthStateChanged(auth, async (user) => {
                     div.innerHTML += `
                       <div style="margin-bottom: 10px;">
                         <p><strong>${item.title}</strong></p>
-                        <div class="video-wrapper">
-        <iframe class="yt-frame"
+                        <iframe style="width:100%; aspect-ratio: 16/9; border:0;"
                           src="https://www.youtube.com/embed/${videoId}"
-                          frameborder="0"?modestbranding=1&rel=0&controls=1
+                          frameborder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowfullscreen></iframe><div class="yt-overlay"></div></div>
+                          allowfullscreen>
                         </iframe>
                       </div>`;
                   }
