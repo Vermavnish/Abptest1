@@ -17,25 +17,23 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Student Registration
+// Register
 const register = async () => {
   const email = document.getElementById("reg-email").value;
   const password = document.getElementById("reg-password").value;
-
   try {
     await createUserWithEmailAndPassword(auth, email, password);
-    alert("Registered Successfully");
     await setDoc(doc(db, "students", email), { batches: [] });
+    alert("Registered Successfully");
   } catch (error) {
     alert(error.message);
   }
 };
 
-// Student Login
+// Login
 const login = async () => {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
-
   try {
     await signInWithEmailAndPassword(auth, email, password);
     alert("Logged in successfully");
@@ -50,7 +48,7 @@ const logout = async () => {
   location.reload();
 };
 
-// On Auth State Change
+// On Auth Change
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById("auth-section").classList.add("hidden");
@@ -60,52 +58,57 @@ onAuthStateChanged(auth, async (user) => {
     } else {
       document.getElementById("student-panel").classList.remove("hidden");
 
-      try {
-        const studentRef = doc(db, "students", user.email);
-        const studentSnap = await getDoc(studentRef);
+      const studentRef = doc(db, "students", user.email);
+      const studentSnap = await getDoc(studentRef);
 
-        if (studentSnap.exists()) {
-          const studentData = studentSnap.data();
-          console.log("Student batches IDs:", studentData.batches);
+      if (studentSnap.exists()) {
+        const studentData = studentSnap.data();
+        const container = document.getElementById("student-batches");
+        container.innerHTML = "";
 
-          const container = document.getElementById("student-batches");
-          container.innerHTML = "";
+        for (let batchId of studentData.batches) {
+          const batchSnap = await getDoc(doc(db, "batches", batchId));
+          if (batchSnap.exists()) {
+            const batchData = batchSnap.data();
+            const div = document.createElement("div");
+            div.innerHTML = `<h3>${batchData.name}</h3>`;
 
-          for (let batchId of studentData.batches) {
-            const batchSnap = await getDoc(doc(db, "batches", batchId));
-            if (batchSnap.exists()) {
-              const batchData = batchSnap.data();
-              console.log("Fetched batch:", batchData);
-
-              const div = document.createElement("div");
-              div.innerHTML = `<h3>${batchData.name}</h3>`;
-
-              for (let subject in batchData.subjects) {
-                div.innerHTML += `<h4>${subject}</h4>`;
-                batchData.subjects[subject].forEach(item => {
+            for (let subject in batchData.subjects) {
+              div.innerHTML += `<h4>${subject}</h4>`;
+              batchData.subjects[subject].forEach(item => {
+                if (item.type === "video") {
+                  const match = item.url.match(/(?:v=|\.be\/)([\w-]+)/);
+                  if (match) {
+                    const videoId = match[1];
+                    div.innerHTML += `
+                      <div style="margin-bottom: 10px;">
+                        <p><strong>${item.title}</strong></p>
+                        <iframe width="300" height="170"
+                          src="https://www.youtube.com/embed/${videoId}"
+                          frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowfullscreen>
+                        </iframe>
+                      </div>`;
+                  }
+                } else {
                   div.innerHTML += `<p><a href="${item.url}" target="_blank">${item.title} (${item.type})</a></p>`;
-                });
-              }
-
-              container.appendChild(div);
+                }
+              });
             }
+
+            container.appendChild(div);
           }
-        } else {
-          console.log("Student document not found.");
         }
-      } catch (err) {
-        console.error("Error loading student data:", err.message);
       }
     }
   }
 });
 
-// Expose functions to global scope
+// Admin Functions
 window.register = register;
 window.login = login;
 window.logout = logout;
 
-// Create Batch
 window.createBatch = async () => {
   const name = document.getElementById("batch-name").value;
   try {
@@ -119,7 +122,6 @@ window.createBatch = async () => {
   }
 };
 
-// Add Subject Content to Batch
 window.addSubjectContent = async () => {
   const batchName = document.getElementById("batch-id-subject").value.trim();
   const subject = document.getElementById("subject-name").value.trim();
@@ -160,7 +162,6 @@ window.addSubjectContent = async () => {
   }
 };
 
-// Assign Batch to Student
 window.assignBatch = async () => {
   const email = document.getElementById("student-email").value.trim();
   const batchName = document.getElementById("assign-batch-id").value.trim();
