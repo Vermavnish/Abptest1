@@ -71,6 +71,9 @@ onAuthStateChanged(auth, async (user) => {
           if (batchSnap.exists()) {
             const batchData = batchSnap.data();
             const div = document.createElement("div");
+            div.style.border = "1px solid #ccc";
+            div.style.padding = "10px";
+            div.style.marginBottom = "15px";
             div.innerHTML = `<h3>${batchData.name}</h3>`;
 
             for (let subject in batchData.subjects) {
@@ -83,7 +86,7 @@ onAuthStateChanged(auth, async (user) => {
                     div.innerHTML += `
                       <div style="margin-bottom: 10px;">
                         <p><strong>${item.title}</strong></p>
-                        <iframe width="300" height="170"
+                        <iframe width="100%" height="250" style="max-width: 600px;"
                           src="https://www.youtube.com/embed/${videoId}"
                           frameborder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
